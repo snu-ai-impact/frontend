@@ -6,12 +6,37 @@ import { Card } from "@/components/ui/Card";
 import type { ReferenceFileItem } from "@/lib/types";
 
 const MAX_TOTAL_BYTES = 200 * 1024 * 1024;
-const ACCEPT_EXT = [".pdf", ".txt"] as const;
+const ACCEPT_EXT = [
+  ".md",
+  ".csv",
+  ".pdf",
+  ".ppt",
+  ".pptx",
+  ".txt",
+  ".docx",
+  ".xlsm",
+  ".py",
+  ".ipynb",
+  ".xlsx",
+  ".json",
+] as const;
+
+const ALLOWED_LABEL =
+  "MD, CSV, PDF, PPT, TXT, DOCX, XLSM, PY, IPYNB, XLSX, JSON";
+
 const ACCEPT_MIME = new Set([
+  "text/markdown",
+  "text/x-markdown",
+  "text/plain",
+  "text/csv",
   "application/pdf",
   "application/json",
-  "text/plain",
-  "text/markdown",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel.sheet.macroenabled.12",
+  "application/x-ipynb+json",
 ]);
 
 function formatSize(bytes: number): string {
@@ -53,7 +78,7 @@ export function ReferenceMaterialsInput({ files, onChange }: ReferenceMaterialsI
 
       for (const file of list) {
         if (!isAllowed(file)) {
-          errors.push(`"${file.name}": PDF · JSON · TXT · MD만 업로드할 수 있습니다.`);
+          errors.push(`"${file.name}": ${ALLOWED_LABEL} 파일만 업로드할 수 있습니다.`);
           continue;
         }
         if (next.some((f) => f.name === file.name && f.size === file.size)) continue;
@@ -134,7 +159,9 @@ export function ReferenceMaterialsInput({ files, onChange }: ReferenceMaterialsI
               파일 선택
             </label>
           </p>
-          <p className="mt-1.5 text-[11.5px] text-ink-500">PDF · TXT · 총합 최대 200MB</p>
+          <p className="mt-1.5 text-center text-[11.5px] text-ink-500">
+            MD · 총합 최대 200MB
+          </p>
         </div>
 
         <input
