@@ -14,7 +14,7 @@ import { getDisplayQuestion, questionTitleFromBody } from "@/lib/format-question
 import { persistQuestionComment } from "@/lib/save-comment";
 import { persistQuestionQuality } from "@/lib/save-quality";
 import { QuestionDetailContent } from "@/components/question/QuestionDetailContent";
-import { CommentEditorControlled } from "@/components/question/QuestionExtras";
+import { CommentEditorControlled, UsedPromptSection } from "@/components/question/QuestionExtras";
 import { QualityStatusPicker } from "@/components/ui/QualityStatusPicker";
 import type { QualityStatus, SQuestion } from "@/lib/types";
 
@@ -38,6 +38,11 @@ function QuestionTypeBadge({ type }: { type: SQuestion["questionType"] }) {
       {type === "multiple" ? "객관식" : "주관식"}
     </Badge>
   );
+}
+
+function formatTokenCount(value: number | null): string {
+  if (typeof value !== "number") return "기록 없음";
+  return `${value.toLocaleString("ko-KR")} tokens`;
 }
 
 function FilterDropdown({
@@ -151,6 +156,9 @@ function DetailPanel({
         <p className="mt-1 font-sans text-[12px] text-ink-500">
           {created}
         </p>
+        <p className="mt-1 font-sans text-[12px] text-ink-500">
+          총 사용 토큰: {formatTokenCount(item.tokenCount)}
+        </p>
         <div className="mt-3 flex items-center justify-between">
           <QualityStatusPicker value={qualityDraft} onChange={setQualityDraft} disabled={savingQuality} />
           <div className="flex items-center gap-2">
@@ -175,6 +183,7 @@ function DetailPanel({
       </div>
 
       <div className="scrollbar-thin flex-1 space-y-5 overflow-y-auto p-5">
+        <UsedPromptSection promptText={item.promptText} promptId={item.promptId} />
         <QuestionDetailContent
           preview={item.metadata}
           originalData={item.originalData}

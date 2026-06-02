@@ -51,6 +51,7 @@ export interface ApiSubjectiveRow {
   scoring_criteria: string | Record<string, unknown> | unknown[] | null;
   distractor_analysis: string | null;
   difficulty: string | null;
+  token_count?: number | null;
   metadata?: Record<string, unknown> | null;
   prompt_text?: string | null;
   comment?: string | null;
@@ -78,6 +79,7 @@ export interface ApiMultipleRow {
   curriculum_reference: string | null;
   distractor_analysis: string | null;
   difficulty: string | null;
+  token_count?: number | null;
   metadata?: Record<string, unknown> | null;
   prompt_text?: string | null;
   comment?: string | null;

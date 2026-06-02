@@ -33,6 +33,8 @@ export interface SQuestion {
   backendId?: string | null;
   questionType: QuestionType;
   promptId: string;
+  /** 생성 시 사용된 시스템 프롬프트 전문 (prompts.reference.system_prompt) */
+  promptText: string | null;
   model: string;
   files: {
     name: string;
@@ -51,6 +53,7 @@ export interface SQuestion {
   scoringCriteria: string | null;
   distractorAnalysis: string | null;
   difficulty: Difficulty | null;
+  tokenCount: number | null;
   metadata: GeneratedAssessmentPreview;
   category: string;
   targetAudience: string;

@@ -82,6 +82,43 @@ function ChoiceList({
   );
 }
 
+function PromptBody({ text }: { text: string | null | undefined }) {
+  if (!text?.trim()) {
+    return <p className="text-[12px] text-ink-500">저장된 프롬프트가 없습니다.</p>;
+  }
+  return (
+    <pre className="scrollbar-thin max-h-[min(60vh,520px)] overflow-auto whitespace-pre-wrap rounded-lg bg-surface-50 p-3 font-sans text-[12.5px] leading-6 text-ink-800 ring-1 ring-surface-200">
+      {text}
+    </pre>
+  );
+}
+
+/** 문제은행 상세 — 생성에 사용된 시스템 프롬프트 전문 */
+export function UsedPromptSection({
+  promptText,
+  promptId,
+}: {
+  promptText: string | null;
+  promptId?: string;
+}) {
+  return (
+    <section className="rounded-xl bg-white shadow-card ring-1 ring-surface-200">
+      <div className="px-5 py-4">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="grid h-5 w-5 place-items-center rounded-md bg-brand-50 text-brand-700">
+            <Icon name="sparkles" className="h-3 w-3" />
+          </span>
+          <h3 className="text-[14px] font-semibold tracking-tight text-ink-900">사용된 시스템 프롬프트</h3>
+        </div>
+        {promptId && (
+          <p className="mb-2 font-sans text-[11px] text-ink-500">prompt_id: {promptId}</p>
+        )}
+        <PromptBody text={promptText} />
+      </div>
+    </section>
+  );
+}
+
 /** Best Practice ~ Distractor Analysis — 항목별 독립 섹션 */
 export function RubricDetailSections({
   itemMetadata,
