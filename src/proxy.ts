@@ -17,7 +17,7 @@ export function proxy(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(loginUrl, 303);
   }
 
   return NextResponse.next();

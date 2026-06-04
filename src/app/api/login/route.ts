@@ -8,14 +8,14 @@ export async function POST(request: Request) {
   const { id, password, secret } = getLoginCredentials();
 
   if (!isAuthConfigured()) {
-    return NextResponse.redirect(new URL("/login?error=config", request.url));
+    return NextResponse.redirect(new URL("/login?error=config", request.url), 303);
   }
 
   if (inputId !== id || inputPassword !== password) {
-    return NextResponse.redirect(new URL("/login?error=invalid", request.url));
+    return NextResponse.redirect(new URL("/login?error=invalid", request.url), 303);
   }
 
-  const response = NextResponse.redirect(new URL("/", request.url));
+  const response = NextResponse.redirect(new URL("/", request.url), 303);
   response.cookies.set(AUTH_COOKIE_NAME, secret, {
     httpOnly: true,
     sameSite: "lax",
