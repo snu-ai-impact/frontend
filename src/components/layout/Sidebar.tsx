@@ -77,6 +77,14 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-white/5 p-3">
+        <form action="/logout" method="post" className="mb-2">
+          <button
+            type="submit"
+            className="flex h-9 w-full items-center justify-center rounded-lg text-[12.5px] font-medium text-white/65 transition hover:bg-white/5 hover:text-white"
+          >
+            로그아웃
+          </button>
+        </form>
         <div className="rounded-xl bg-white/4 p-3.5 ring-1 ring-white/5">
           <div className="flex items-center justify-between text-[11px] text-white/60">
             <span>이번 달 토큰</span>
