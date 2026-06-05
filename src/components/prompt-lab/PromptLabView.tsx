@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/icons/Icon";
 import { Badge, ModelBadge, QualityBadge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -30,13 +30,13 @@ import type {
 
 const GEMINI_MODEL = "gemini-3.5-flash";
 
-const MODEL_OPTIONS: { key: Provider; label: string; sub: string }[] = [
-  { key: "gemini", label: "Gemini 3.5 Flash", sub: "Google" },
+const MODEL_OPTIONS: { key: Provider; label: string }[] = [
+  { key: "gemini", label: "Gemini 3.5 Flash" },
 ];
 
-const QUESTION_TYPE_OPTIONS: { key: QuestionType; label: string; sub: string }[] = [
-  { key: "subjective", label: "주관식", sub: "모범답안과 채점 기준 생성" },
-  { key: "multiple", label: "객관식", sub: "5지선다와 정답 번호 생성" },
+const QUESTION_TYPE_OPTIONS: { key: QuestionType; label: string }[] = [
+  { key: "subjective", label: "주관식" },
+  { key: "multiple", label: "객관식" },
 ];
 
 const initialForm: Omit<PromptLabFormState, "systemPrompt"> = {
@@ -47,74 +47,223 @@ const initialForm: Omit<PromptLabFormState, "systemPrompt"> = {
 
 type Phase = "empty" | "loading" | "result" | "error";
 
-function ModelToggle({ value, onChange }: { value: Provider; onChange: (v: Provider) => void }) {
+type PromptSection = { header: string; body: string };
+
+function parsePromptSections(text: string): PromptSection[] {
+  const lines = text.split("\n");
+  const buckets: { header: string; bodyLines: string[] }[] = [
+    { header: "", bodyLines: [] },
+  ];
+  for (const line of lines) {
+    if (/^# /.test(line)) {
+      buckets.push({ header: line, bodyLines: [] });
+    } else {
+      buckets[buckets.length - 1].bodyLines.push(line);
+    }
+  }
+  if (
+    buckets.length > 1 &&
+    buckets[0].header === "" &&
+    buckets[0].bodyLines.join("\n").trim() === ""
+  ) {
+    buckets.shift();
+  }
+  return buckets.map((b) => ({ header: b.header, body: b.bodyLines.join("\n") }));
+}
+
+function serializePromptSections(sections: PromptSection[]): string {
+  return sections
+    .map((s) => (s.header ? `${s.header}\n${s.body}` : s.body))
+    .join("\n");
+}
+
+function TopBar({
+  questionType,
+  onQuestionTypeChange,
+  provider,
+  onProviderChange,
+  canGenerate,
+  isGenerating,
+  onGenerate,
+}: {
+  questionType: QuestionType;
+  onQuestionTypeChange: (v: QuestionType) => void;
+  provider: Provider;
+  onProviderChange: (v: Provider) => void;
+  canGenerate: boolean;
+  isGenerating: boolean;
+  onGenerate: () => void;
+}) {
   return (
-    <div className="grid grid-cols-1 gap-2">
-      {MODEL_OPTIONS.map((m) => {
-        const on = value === m.key;
-        return (
-          <button
-            key={m.key}
-            type="button"
-            onClick={() => onChange(m.key)}
-            className={`relative rounded-xl p-3.5 text-left ring-1 transition ${
-              on ? "bg-brand-50 shadow-card ring-brand-500/60" : "bg-white ring-surface-200 hover:ring-surface-300"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <div className="leading-tight">
-                <div className="text-[13px] font-semibold text-ink-900">{m.label}</div>
-                <div className="font-mono text-[11px] text-ink-500">{m.sub}</div>
-              </div>
-            </div>
-            <span
-              className={`absolute right-2.5 top-2.5 grid h-4 w-4 place-items-center rounded-full transition ${
-                on ? "bg-brand-600 text-white" : "bg-white ring-1 ring-surface-300"
+    <div className="flex items-center gap-3">
+      <div className="inline-flex items-center gap-1 rounded-lg bg-white p-1 ring-1 ring-surface-200">
+        {QUESTION_TYPE_OPTIONS.map((option) => {
+          const on = questionType === option.key;
+          return (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => onQuestionTypeChange(option.key)}
+              aria-pressed={on}
+              className={`rounded-md px-3 py-1.5 text-[12.5px] font-medium transition ${
+                on
+                  ? "bg-brand-600 text-white shadow-sm"
+                  : "text-ink-700 hover:bg-surface-50"
               }`}
             >
-              {on && <Icon name="check" className="h-3 w-3" strokeWidth={2.5} />}
-            </span>
-          </button>
-        );
-      })}
+              {option.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="ml-auto inline-flex items-center gap-2">
+        <span className="text-[11px] uppercase tracking-wide text-ink-500">모델</span>
+        <select
+          value={provider}
+          onChange={(e) => onProviderChange(e.target.value as Provider)}
+          className="h-9 rounded-lg bg-white px-2.5 pr-7 text-[12.5px] text-ink-900 ring-1 ring-inset ring-surface-300 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+        >
+          {MODEL_OPTIONS.map((m) => (
+            <option key={m.key} value={m.key}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <Button
+        variant="brand"
+        size="md"
+        disabled={isGenerating || !canGenerate}
+        onClick={onGenerate}
+        icon={<Icon name="sparkles" className="h-3.5 w-3.5" />}
+        title={!canGenerate ? "참고자료를 1개 이상 업로드해 주세요" : undefined}
+      >
+        {isGenerating ? "생성 중…" : "AI로 문제 생성"}
+      </Button>
     </div>
   );
 }
 
-function QuestionTypeToggle({
+function SectionedPromptEditor({
   value,
   onChange,
+  onRestore,
 }: {
-  value: QuestionType;
-  onChange: (v: QuestionType) => void;
+  value: string;
+  onChange: (v: string) => void;
+  onRestore: () => void;
 }) {
+  const [rawMode, setRawMode] = useState(false);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set([0]));
+
+  const sections = useMemo(() => parsePromptSections(value), [value]);
+
+  useEffect(() => {
+    setExpanded((prev) => {
+      if (sections.length === 0) return new Set();
+      const valid = new Set<number>();
+      for (const i of prev) if (i < sections.length) valid.add(i);
+      if (valid.size === 0) valid.add(0);
+      return valid;
+    });
+  }, [sections.length]);
+
+  const toggle = (i: number) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  };
+
+  const updateSectionBody = (i: number, newBody: string) => {
+    const next = sections.map((s, idx) =>
+      idx === i ? { ...s, body: newBody } : s,
+    );
+    onChange(serializePromptSections(next));
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {QUESTION_TYPE_OPTIONS.map((option) => {
-        const on = value === option.key;
-        return (
-          <button
-            key={option.key}
-            type="button"
-            onClick={() => onChange(option.key)}
-            className={`rounded-xl p-3 text-left ring-1 transition ${
-              on ? "bg-brand-50 shadow-card ring-brand-500/60" : "bg-white ring-surface-200 hover:ring-surface-300"
-            }`}
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <span className="font-mono text-[11px] text-ink-500">
+          {rawMode ? "Raw" : `${sections.length}개 섹션`}
+        </span>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={onRestore}>
+            기본값 복원
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setRawMode((v) => !v)}
+            icon={<Icon name="layers" className="h-3.5 w-3.5" />}
           >
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-[13px] font-semibold text-ink-900">{option.label}</span>
-              <span
-                className={`grid h-4 w-4 place-items-center rounded-full transition ${
-                  on ? "bg-brand-600 text-white" : "bg-white ring-1 ring-surface-300"
-                }`}
+            {rawMode ? "섹션 모드" : "Raw 모드"}
+          </Button>
+        </div>
+      </div>
+      {rawMode ? (
+        <Textarea
+          rows={24}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="font-mono text-[11.5px]"
+        />
+      ) : (
+        <div className="space-y-2">
+          {sections.map((section, i) => {
+            const isOpen = expanded.has(i);
+            const title = section.header.replace(/^#\s+/, "") || "(머리말)";
+            const bodyLineCount = section.body
+              .split("\n")
+              .filter((l) => l.trim()).length;
+            const rows = Math.max(
+              6,
+              Math.min(16, section.body.split("\n").length + 1),
+            );
+            return (
+              <div
+                key={i}
+                className="overflow-hidden rounded-lg bg-white ring-1 ring-surface-200"
               >
-                {on && <Icon name="check" className="h-3 w-3" strokeWidth={2.5} />}
-              </span>
-            </div>
-            <p className="mt-1 text-[11px] leading-4 text-ink-500">{option.sub}</p>
-          </button>
-        );
-      })}
+                <button
+                  type="button"
+                  onClick={() => toggle(i)}
+                  aria-expanded={isOpen}
+                  className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition hover:bg-surface-50"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Icon
+                      name={isOpen ? "chevron" : "chevronR"}
+                      className="h-3.5 w-3.5 shrink-0 text-ink-500"
+                    />
+                    <span className="truncate text-[12.5px] font-semibold text-ink-900">
+                      {title}
+                    </span>
+                  </div>
+                  {!isOpen && (
+                    <span className="shrink-0 font-mono text-[10.5px] text-ink-500">
+                      {bodyLineCount}줄
+                    </span>
+                  )}
+                </button>
+                {isOpen && (
+                  <div className="border-t border-surface-200 p-2">
+                    <Textarea
+                      rows={rows}
+                      value={section.body}
+                      onChange={(e) => updateSectionBody(i, e.target.value)}
+                      className="font-mono text-[11.5px]"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -347,56 +496,32 @@ export function PromptLabView({
 
   return (
     <div className="flex w-full min-h-0 flex-1 overflow-hidden">
-      <div className="scrollbar-thin w-1/2 min-h-0 overflow-y-auto p-6 flex flex-col gap-4 xl:w-[42%]">
-        <Card title="문항 유형">
-          <QuestionTypeToggle
-            value={form.questionType}
-            onChange={handleQuestionTypeChange}
-          />
-        </Card>
+      <div className="scrollbar-thin w-[55%] min-h-0 overflow-y-auto p-6 flex flex-col gap-4">
+        <TopBar
+          questionType={form.questionType}
+          onQuestionTypeChange={handleQuestionTypeChange}
+          provider={form.provider}
+          onProviderChange={(p) => setForm((f) => ({ ...f, provider: p }))}
+          canGenerate={canGenerate}
+          isGenerating={phase === "loading"}
+          onGenerate={handleGenerate}
+        />
 
-        <Card title="AI 모델">
-          <ModelToggle value={form.provider} onChange={(p) => setForm((f) => ({ ...f, provider: p }))} />
-        </Card>
-
-        <Card title="프롬프트" subtitle="Chief Assessment Architect · 수정 가능">
-          <Textarea
-            rows={8}
+        <Card title="프롬프트" subtitle="Chief Assessment Architect · 섹션별 편집">
+          <SectionedPromptEditor
             value={form.systemPrompt}
-            onChange={(e) => setForm((f) => ({ ...f, systemPrompt: e.target.value }))}
-            className="font-mono text-xs"
+            onChange={(v) => setForm((f) => ({ ...f, systemPrompt: v }))}
+            onRestore={() => void loadSystemPrompt()}
           />
-          <Button variant="ghost" size="sm" className="mt-2" onClick={() => void loadSystemPrompt()}>
-            기본값 복원
-          </Button>
         </Card>
 
         <ReferenceMaterialsInput
           files={form.referenceFiles}
           onChange={(referenceFiles) => setForm((f) => ({ ...f, referenceFiles }))}
         />
-
-        <div className="sticky bottom-0 z-10 w-full rounded-xl bg-ink-900 p-3.5 shadow-pop mt-6">
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[12px] text-white/70">
-              {canGenerate
-                ? "참고자료를 바탕으로 문항을 생성합니다."
-                : "참고자료를 1개 이상 업로드해 주세요."}
-            </span>
-            <Button
-              variant="brand"
-              size="lg"
-              disabled={phase === "loading" || !canGenerate}
-              onClick={handleGenerate}
-              icon={<Icon name="sparkles" className="h-4 w-4" />}
-            >
-              {phase === "loading" ? "생성 중…" : "AI로 문제 생성"}
-            </Button>
-          </div>
-        </div>
       </div>
 
-      <div className="scrollbar-thin w-1/2 min-h-0 overflow-y-auto p-6 flex flex-col gap-4 xl:w-[58%]">
+      <div className="scrollbar-thin w-[45%] min-h-0 overflow-y-auto p-6 flex flex-col gap-4">
         {phase === "empty" && (
           <div className="grid min-h-[560px] place-items-center rounded-2xl bg-white p-10 ring-1 ring-dashed ring-surface-300">
             <div className="max-w-md text-center">

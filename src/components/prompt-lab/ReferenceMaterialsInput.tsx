@@ -106,111 +106,111 @@ export function ReferenceMaterialsInput({ files, onChange }: ReferenceMaterialsI
     setError(null);
   };
 
+  const totalCount = files.length;
+
   return (
     <Card
       title="참고자료"
-      subtitle="업로드한 자료는 API 호출 시 첨부됩니다."
-      padding="p-0"
+      subtitle={totalCount > 0 ? `${totalCount}개 첨부됨` : "API 호출 시 첨부됩니다"}
+      padding="p-3"
     >
-      <div className="px-5 py-5">
-        <div
-          role="button"
-          tabIndex={0}
-          onDragEnter={(e) => {
+      <div
+        role="button"
+        tabIndex={0}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          if (e.currentTarget === e.target) setDragOver(false);
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          addFiles(e.dataTransfer.files);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragOver(true);
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            if (e.currentTarget === e.target) setDragOver(false);
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragOver(false);
-            addFiles(e.dataTransfer.files);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              inputRef.current?.click();
-            }
-          }}
-          className={`mt-1 flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-10 transition ${
-            dragOver
-              ? "border-brand-400 bg-brand-50/50"
-              : "border-surface-300 bg-surface-50/40 hover:border-surface-400 hover:bg-surface-50"
-          }`}
-          onClick={() => inputRef.current?.click()}
-        >
-          <span className="mb-3 grid h-10 w-10 place-items-center rounded-full bg-white text-ink-500 ring-1 ring-surface-200">
-            <Icon name="upload" className="h-5 w-5" />
-          </span>
-          <p className="text-center text-[13px] text-ink-700">
-            참고자료를 드래그하거나{" "}
-            <label
-              htmlFor={inputId}
-              className="font-medium text-brand-600 hover:text-brand-700"
-              onClick={(e) => e.stopPropagation()}
-            >
-              파일 선택
-            </label>
-          </p>
-          <p className="mt-1.5 text-center text-[11.5px] text-ink-500">
-            MD · 총합 최대 200MB
-          </p>
-        </div>
-
-        <input
-          ref={inputRef}
-          id={inputId}
-          type="file"
-          multiple
-          accept={ACCEPT_EXT.join(",")}
-          className="sr-only"
-          onChange={(e) => {
-            if (e.target.files) addFiles(e.target.files);
-            e.target.value = "";
-          }}
-        />
-
-        {error && <p className="mt-2 text-[12px] text-rose-600">{error}</p>}
-
-        {files.length > 0 && (
-          <ul className="mt-3 space-y-2">
-            {files.map((file, index) => (
-              <li
-                key={`${file.name}-${file.size}`}
-                className="flex items-center gap-3 rounded-lg bg-white px-3 py-2.5 ring-1 ring-surface-200"
-              >
-                <span className="shrink-0 rounded-md bg-rose-50 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wide text-rose-600">
-                  {fileExtension(file.name)}
-                </span>
-                <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-ink-900">
-                  {file.name}
-                </span>
-                <span className="shrink-0 font-mono text-[11px] text-ink-500">
-                  {formatSize(file.size)}
-                </span>
-                <button
-                  type="button"
-                  aria-label={`${file.name} 제거`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeAt(index);
-                  }}
-                  className="grid h-7 w-7 shrink-0 place-items-center rounded-md text-ink-500 transition hover:bg-surface-100 hover:text-ink-800"
-                >
-                  <Icon name="x" className="h-4 w-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+            inputRef.current?.click();
+          }
+        }}
+        className={`flex cursor-pointer items-center gap-3 rounded-lg border border-dashed px-3 py-2.5 transition ${
+          dragOver
+            ? "border-brand-400 bg-brand-50/50"
+            : "border-surface-300 bg-surface-50/40 hover:border-surface-400 hover:bg-surface-50"
+        }`}
+        onClick={() => inputRef.current?.click()}
+      >
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white text-ink-500 ring-1 ring-surface-200">
+          <Icon name="upload" className="h-3.5 w-3.5" />
+        </span>
+        <p className="min-w-0 flex-1 truncate text-[12.5px] text-ink-700">
+          드래그하거나{" "}
+          <label
+            htmlFor={inputId}
+            className="font-medium text-brand-600 hover:text-brand-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            파일 선택
+          </label>
+        </p>
+        <span className="shrink-0 font-mono text-[10.5px] text-ink-500">
+          최대 200MB
+        </span>
       </div>
+
+      <input
+        ref={inputRef}
+        id={inputId}
+        type="file"
+        multiple
+        accept={ACCEPT_EXT.join(",")}
+        className="sr-only"
+        onChange={(e) => {
+          if (e.target.files) addFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      {error && <p className="mt-2 text-[11.5px] text-rose-600">{error}</p>}
+
+      {files.length > 0 && (
+        <ul className="mt-2 space-y-1.5">
+          {files.map((file, index) => (
+            <li
+              key={`${file.name}-${file.size}`}
+              className="flex items-center gap-2 rounded-md bg-white px-2.5 py-1.5 ring-1 ring-surface-200"
+            >
+              <span className="shrink-0 rounded bg-rose-50 px-1.5 py-0.5 font-mono text-[9.5px] font-semibold uppercase tracking-wide text-rose-600">
+                {fileExtension(file.name)}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-mono text-[11.5px] text-ink-900">
+                {file.name}
+              </span>
+              <span className="shrink-0 font-mono text-[10.5px] text-ink-500">
+                {formatSize(file.size)}
+              </span>
+              <button
+                type="button"
+                aria-label={`${file.name} 제거`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  removeAt(index);
+                }}
+                className="grid h-6 w-6 shrink-0 place-items-center rounded text-ink-500 transition hover:bg-surface-100 hover:text-ink-800"
+              >
+                <Icon name="x" className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
