@@ -8,17 +8,20 @@ import { FileSourcePicker, type PickedFile } from "./FileSourcePicker";
 import {
   COGNITIVE_BY_BOUNDARY_INDEX,
   COGNITIVE_DEMANDS,
+  DEFAULT_CRITERION_WEIGHTS,
   DOMAIN_LABELS,
   DOMAINS,
   EXAM_LEVELS,
+  INDUSTRIES,
   TARGET_BOUNDARIES,
   TARGET_P_BAND,
+  TASK_TYPES,
   boundaryCut,
   boundaryTooltip,
   defaultTargetP,
 } from "@/lib/authoring-constants";
 import type { ExamLevel } from "@/lib/authoring-constants";
-import type { GenParams } from "@/lib/authoring-types";
+import type { GenParams, PromptType } from "@/lib/authoring-types";
 
 export interface ModelSettings {
   model: string;
@@ -41,11 +44,13 @@ const selectCls =
   "h-9 w-full rounded-lg bg-white px-2.5 text-[12.5px] text-ink-900 ring-1 ring-inset ring-surface-300 focus:outline-none focus:ring-2 focus:ring-brand-500/40";
 
 export function ParamForm({
+  promptType = "mcq",
   params,
   onParamsChange,
   settings,
   onSettingsChange,
 }: {
+  promptType?: PromptType;
   params: GenParams;
   onParamsChange: (p: GenParams) => void;
   settings: ModelSettings;
@@ -54,6 +59,7 @@ export function ParamForm({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [sourceLabel, setSourceLabel] = useState<string | null>(null);
 
+  const isSubjective = promptType === "subjective";
   const boundaries = TARGET_BOUNDARIES[(params.exam_level as ExamLevel) ?? "초급"] ?? [];
 
   const handlePick = (file: PickedFile) => {
@@ -69,6 +75,11 @@ export function ParamForm({
   };
 
   const handleExamLevel = (exam_level: string) => {
+    if (isSubjective) {
+      // 주관식은 exam_level 이 과제 복잡도·루브릭 상한만 결정 (경계 없음)
+      onParamsChange({ ...params, exam_level });
+      return;
+    }
     const opts = TARGET_BOUNDARIES[exam_level as ExamLevel] ?? [];
     const target_boundary = opts[0] ?? "";
     // exam_level 변경 → boundary 옵션 갱신 + cognitive·목표정답률 기본값 재세팅 (B1 밴드는 백엔드 런타임 결정)
@@ -96,7 +107,11 @@ export function ParamForm({
   const set = (patch: Partial<GenParams>) => onParamsChange({ ...params, ...patch });
 
   return (
-    <Card title="파라미터 폼" subtitle="호출별 입력 (§4)" padding="p-4">
+    <Card
+      title="파라미터 폼"
+      subtitle={isSubjective ? "주관식 호출별 입력" : "객관식 호출별 입력 (§4)"}
+      padding="p-4"
+    >
       <div className="grid grid-cols-2 gap-3">
         <Field label="시험 (exam_level)">
           <select
@@ -112,101 +127,145 @@ export function ParamForm({
           </select>
         </Field>
 
-        <Field label="타겟 경계 (target_boundary)">
-          <select
-            className={selectCls}
-            value={params.target_boundary}
-            onChange={(e) => handleBoundary(e.target.value)}
-            title={params.target_boundary ? boundaryTooltip(params.target_boundary) : undefined}
-          >
-            {boundaries.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {isSubjective ? (
+          <Field label="과제 유형 (task_type)">
+            <select
+              className={selectCls}
+              value={params.task_type}
+              onChange={(e) => set({ task_type: e.target.value })}
+            >
+              {TASK_TYPES.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </Field>
+        ) : (
+          <Field label="타겟 경계 (target_boundary)">
+            <select
+              className={selectCls}
+              value={params.target_boundary}
+              onChange={(e) => handleBoundary(e.target.value)}
+              title={params.target_boundary ? boundaryTooltip(params.target_boundary) : undefined}
+            >
+              {boundaries.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
       </div>
 
-      {params.target_boundary && (
+      {!isSubjective && params.target_boundary && (
         <p className="mt-1.5 flex items-center gap-1 text-[11px] text-ink-500">
           <Icon name="info" className="h-3 w-3" />
           {boundaryTooltip(params.target_boundary)}
         </p>
       )}
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
-        <Field label="인지 요구 (cognitive_demand)">
-          <select
-            className={selectCls}
-            value={params.cognitive_demand}
-            onChange={(e) => set({ cognitive_demand: e.target.value })}
-          >
-            {COGNITIVE_DEMANDS.map((v) => (
-              <option key={v} value={v}>
-                {v}
-              </option>
-            ))}
-          </select>
-        </Field>
+      {/* 유형별 변별 파라미터 */}
+      {isSubjective ? (
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <Field label="무대 산업 (industry)">
+            <select
+              className={selectCls}
+              value={params.industry}
+              onChange={(e) => set({ industry: e.target.value })}
+            >
+              {INDUSTRIES.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <Field label="영역 (domain)">
-          <select
-            className={selectCls}
-            value={params.domain}
-            onChange={(e) => set({ domain: e.target.value })}
-          >
-            {DOMAINS.map((v) => (
-              <option key={v} value={v}>
-                {DOMAIN_LABELS[v]}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <Field label="목표 정답률 % (난이도)">
-          <div className="flex items-center gap-1.5">
+          <Field label="문항 배점 (item_points)">
             <Input
               type="number"
-              min="5"
-              max="98"
-              value={params.target_p}
-              onChange={(e) => set({ target_p: Number(e.target.value) })}
+              min="1"
+              value={params.item_points}
+              onChange={(e) => set({ item_points: Number(e.target.value) })}
             />
-            <span className="text-[12px] text-ink-500">%</span>
-          </div>
-          {(() => {
-            const cut = boundaryCut(params.target_boundary);
-            const band = cut ? TARGET_P_BAND[cut] : null;
-            return band ? (
+          </Field>
+
+          <div className="col-span-2">
+            <Field label="기준 가중치 (criterion_weights)">
+              <Input
+                value={params.criterion_weights}
+                onChange={(e) => set({ criterion_weights: e.target.value })}
+                placeholder={DEFAULT_CRITERION_WEIGHTS}
+              />
               <span className="mt-0.5 block text-[10.5px] text-ink-400">
-                경계 권장 p {band} · 낮출수록 어려움
+                맥락·출력·가드레일·워크플로 가중치 (합 = 배점)
               </span>
-            ) : null;
-          })()}
-        </Field>
+            </Field>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <Field label="인지 요구 (cognitive_demand)">
+            <select
+              className={selectCls}
+              value={params.cognitive_demand}
+              onChange={(e) => set({ cognitive_demand: e.target.value })}
+            >
+              {COGNITIVE_DEMANDS.map((v) => (
+                <option key={v} value={v}>
+                  {v}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        <Field label="중주제 ID (topic_id)">
-          <Input
-            value={params.topic_id}
-            onChange={(e) => set({ topic_id: e.target.value })}
-            placeholder="예: AI_보안"
-          />
-        </Field>
+          <Field label="영역 (domain)">
+            <select
+              className={selectCls}
+              value={params.domain}
+              onChange={(e) => set({ domain: e.target.value })}
+            >
+              {DOMAINS.map((v) => (
+                <option key={v} value={v}>
+                  {DOMAIN_LABELS[v]}
+                </option>
+              ))}
+            </select>
+          </Field>
 
+          <Field label="목표 정답률 % (난이도)">
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="number"
+                min="5"
+                max="98"
+                value={params.target_p}
+                onChange={(e) => set({ target_p: Number(e.target.value) })}
+              />
+              <span className="text-[12px] text-ink-500">%</span>
+            </div>
+            {(() => {
+              const cut = boundaryCut(params.target_boundary);
+              const band = cut ? TARGET_P_BAND[cut] : null;
+              return band ? (
+                <span className="mt-0.5 block text-[10.5px] text-ink-400">
+                  경계 권장 p {band} · 낮출수록 어려움
+                </span>
+              ) : null;
+            })()}
+          </Field>
+        </div>
+      )}
+
+      {/* 공용 출처 필드 */}
+      <div className="mt-3">
         <Field label="교안 ID (curriculum_id)">
           <Input
             value={params.curriculum_id}
             onChange={(e) => set({ curriculum_id: e.target.value })}
             placeholder="예: MERITZ-BASIC-01"
-          />
-        </Field>
-
-        <Field label="중주제명 (topic_name)">
-          <Input
-            value={params.topic_name}
-            onChange={(e) => set({ topic_name: e.target.value })}
-            placeholder="예: AI 윤리 및 보안"
           />
         </Field>
       </div>

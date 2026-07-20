@@ -48,9 +48,11 @@ const BANDS = ["초급", "중급", "고급"];
 export function BlockLibrary({
   blocks,
   onBlocksChange,
+  promptType = "mcq",
 }: {
   blocks: Block[];
   onBlocksChange: (next: Block[]) => void;
+  promptType?: string;
 }) {
   const [selectedKey, setSelectedKey] = useState<string | null>(blocks[0]?.block_key ?? null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
@@ -92,11 +94,13 @@ export function BlockLibrary({
     setError(null);
   };
 
-  const startNewBand = () => {
+  // 모든 블록 공용 "새 버전 만들기" 진입점.
+  // 선택된 버전이 있으면 그 내용을 시드로 깔고 부모로 연결(파생), 없으면 빈 버전.
+  const startNew = () => {
     setDraftLabel("");
-    setDraftContent("");
+    setDraftContent(selectedVersion?.content ?? "");
     setDraftNotes("");
-    setDraftBand("중급");
+    setDraftBand(selectedVersion?.band ?? (block?.block_type === "band" ? "중급" : "초급"));
     setEditing(true);
     setError(null);
   };
@@ -149,7 +153,7 @@ export function BlockLibrary({
       {/* 블록 목록 */}
       <div className="scrollbar-thin w-[220px] shrink-0 min-h-0 overflow-y-auto border-r border-surface-200 p-3">
         <div className="px-1 pb-2 text-[10.5px] font-semibold uppercase tracking-wide text-ink-400">
-          블록 11종
+          {promptType === "subjective" ? "주관식" : "객관식"} 블록 {blocks.length}종
         </div>
         {blocks.map((b) => (
           <button
@@ -198,20 +202,19 @@ export function BlockLibrary({
                 </Button>
               </div>
             </div>
-            {block.block_type === "band" && (
-              <Button
-                variant="secondary"
-                size="sm"
-                className="mb-2 w-full"
-                icon={<Icon name="plus" className="h-3.5 w-3.5" />}
-                onClick={startNewBand}
-              >
-                새 밴드 버전 등록
-              </Button>
-            )}
+            <Button
+              variant={editing ? "ghost" : "secondary"}
+              size="sm"
+              className="mb-2 w-full"
+              icon={<Icon name="plus" className="h-3.5 w-3.5" />}
+              onClick={startNew}
+            >
+              {selectedVersion ? `이 버전 기반 새 버전` : "새 버전 만들기"}
+            </Button>
             {versions.length === 0 && (
               <p className="rounded-lg bg-surface-50 p-3 text-[12px] text-ink-500 ring-1 ring-surface-200">
-                버전이 없습니다{block.block_type === "band" ? " (중급·고급은 여기서 등록)" : ""}.
+                버전이 없습니다. 위 “새 버전 만들기”로 첫 버전을 등록하세요
+                {block.block_type === "band" ? " (밴드 초급·중급·고급을 각각 등록)" : ""}.
               </p>
             )}
             {versions.map((v) => {

@@ -58,7 +58,7 @@ export function defaultTargetP(boundary: string): number {
   return (cut && DEFAULT_P_BY_CUT[cut]) || 60;
 }
 
-// 블록 조립 순서 (표시용)
+// 블록 조립 순서 (표시용) — 객관식
 export const BLOCK_ORDER: string[] = [
   "S1",
   "S2",
@@ -73,6 +73,37 @@ export const BLOCK_ORDER: string[] = [
   "P4",
 ];
 
+// 블록 조립 순서 — 주관식 (B1은 객관식과 공유)
+export const SUBJECTIVE_BLOCK_ORDER: string[] = [
+  "R1",
+  "R2",
+  "R3",
+  "R4",
+  "R5",
+  "R6",
+  "B1",
+  "RF",
+  "RP1",
+  "RP3",
+  "RP4",
+];
+
+export function blockOrderFor(promptType: string): string[] {
+  return promptType === "subjective" ? SUBJECTIVE_BLOCK_ORDER : BLOCK_ORDER;
+}
+
+// 유형 전환 스위치
+export const PROMPT_TYPES = [
+  { key: "mcq", label: "객관식" },
+  { key: "subjective", label: "주관식" },
+] as const;
+
+// 주관식 파라미터 옵션
+export const TASK_TYPES = ["설계", "개선", "감사보완"] as const;
+export const INDUSTRIES = ["은행", "증권", "보험", "운용"] as const;
+export const DEFAULT_CRITERION_WEIGHTS = "맥락4·출력4·가드레일4·워크플로3";
+export const DEFAULT_ITEM_POINTS = 15;
+
 export const BLOCK_TYPE_LABEL: Record<string, string> = {
   static: "정적",
   band: "밴드",
@@ -85,3 +116,42 @@ export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
 
 export const RUN_STATUSES = ["ok", "failed", "error"] as const;
 export type RunStatus = (typeof RUN_STATUSES)[number];
+
+// ---- LLM 검수(QC1v2) 표시 상수 ----
+export const VERDICTS = ["pass", "revise", "reject"] as const;
+export type Verdict = (typeof VERDICTS)[number];
+
+export const VERDICT_LABEL: Record<Verdict, string> = {
+  pass: "통과",
+  revise: "수정 필요",
+  reject: "반려",
+};
+
+export const VERDICT_TONE: Record<Verdict, "success" | "warning" | "danger"> = {
+  pass: "success",
+  revise: "warning",
+  reject: "danger",
+};
+
+// 판정 분포 누적 막대 색 (§5.5)
+export const VERDICT_BAR: Record<Verdict, string> = {
+  pass: "bg-emerald-500",
+  revise: "bg-amber-400",
+  reject: "bg-rose-500",
+};
+
+// 3축 라벨 (§0 · scores 키 순서)
+export const AXIS_META: { key: string; label: string; hint: string }[] = [
+  { key: "instructionCompliance", label: "지시 이행", hint: "요청한 대로 만들었는가" },
+  { key: "intentAchievement", label: "의도 도달", hint: "재려던 것을 재는가" },
+  { key: "examineeQuality", label: "응시자 완성도", hint: "푸는 사람에게 좋은 문항인가" },
+];
+
+// 게이트 5종 라벨
+export const GATE_META: { key: string; label: string }[] = [
+  { key: "answerReproduced", label: "정답 재현" },
+  { key: "quoteVerified", label: "인용 실재" },
+  { key: "contentCeiling", label: "콘텐츠 상한" },
+  { key: "singleBestAnswer", label: "단일 정답" },
+  { key: "schemaSemantics", label: "스키마 의미" },
+];

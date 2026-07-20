@@ -13,24 +13,52 @@ import {
   updateConfig,
   updateReview,
 } from "@/lib/authoring-api";
-import type { AssemblyConfig, Block, GenParams, GenerationRun, PreviewResult } from "@/lib/authoring-types";
+import type {
+  AssemblyConfig,
+  Block,
+  GenParams,
+  GenerationRun,
+  PreviewResult,
+  PromptType,
+} from "@/lib/authoring-types";
+import { DEFAULT_CRITERION_WEIGHTS, DEFAULT_ITEM_POINTS } from "@/lib/authoring-constants";
 import { AssemblyConfigEditor } from "./AssemblyConfigEditor";
 import { ParamForm, type ModelSettings } from "./ParamForm";
 import { PreviewPanel } from "./PreviewPanel";
 import { RunResultView } from "./RunResultView";
 
-const DEFAULT_PARAMS: GenParams = {
+const BASE_PARAMS = {
   exam_level: "초급",
-  target_boundary: "BM/BH(70)",
-  cognitive_demand: "적용",
-  domain: "E",
   target_p: 60,
+  item_points: DEFAULT_ITEM_POINTS,
+  criterion_weights: DEFAULT_CRITERION_WEIGHTS,
   avoid_list: "",
   curriculum_id: "",
   topic_id: "",
   topic_name: "",
   curriculum_material: "",
 };
+
+const DEFAULT_PARAMS_MCQ: GenParams = {
+  ...BASE_PARAMS,
+  target_boundary: "BM/BH(70)",
+  cognitive_demand: "적용",
+  domain: "E",
+  task_type: "",
+  industry: "",
+};
+
+const DEFAULT_PARAMS_SUBJ: GenParams = {
+  ...BASE_PARAMS,
+  target_boundary: "",
+  cognitive_demand: "",
+  domain: "",
+  task_type: "개선",
+  industry: "보험",
+};
+
+const defaultParamsFor = (t: PromptType): GenParams =>
+  t === "subjective" ? { ...DEFAULT_PARAMS_SUBJ } : { ...DEFAULT_PARAMS_MCQ };
 
 const DEFAULT_SETTINGS: ModelSettings = {
   model: "gemini-3.5-flash",
@@ -39,11 +67,13 @@ const DEFAULT_SETTINGS: ModelSettings = {
 };
 
 export function ExperimentBuilder({
+  promptType = "mcq",
   blocks,
   configs,
   onConfigsChange,
   onOpenRun,
 }: {
+  promptType?: PromptType;
   blocks: Block[];
   configs: AssemblyConfig[];
   onConfigsChange: (next: AssemblyConfig[]) => void;
@@ -55,7 +85,7 @@ export function ExperimentBuilder({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [params, setParams] = useState<GenParams>(DEFAULT_PARAMS);
+  const [params, setParams] = useState<GenParams>(() => defaultParamsFor(promptType));
   const [settings, setSettings] = useState<ModelSettings>(DEFAULT_SETTINGS);
 
   const [preview, setPreview] = useState<PreviewResult | null>(null);
@@ -83,7 +113,7 @@ export function ExperimentBuilder({
 
   const ensureSaved = useCallback(async (): Promise<string> => {
     if (!selectedConfigId) {
-      const created = await createConfig({ name: name || "새 조합", mapping });
+      const created = await createConfig({ name: name || "새 조합", mapping, prompt_type: promptType });
       onConfigsChange([created, ...configs]);
       setSelectedConfigId(created.id);
       setDirty(false);
@@ -113,7 +143,7 @@ export function ExperimentBuilder({
     setSaving(true);
     setError(null);
     try {
-      const created = await createConfig({ name: name || "새 조합", mapping });
+      const created = await createConfig({ name: name || "새 조합", mapping, prompt_type: promptType });
       onConfigsChange([created, ...configs]);
       loadConfig(created);
     } catch (e) {
@@ -203,6 +233,7 @@ export function ExperimentBuilder({
     <div className="flex w-full min-h-0 flex-1 overflow-hidden">
       <div className="scrollbar-thin w-[48%] min-h-0 overflow-y-auto border-r border-surface-200 p-5 flex flex-col gap-4">
         <AssemblyConfigEditor
+          promptType={promptType}
           blocks={blocks}
           configs={configs}
           selectedConfigId={selectedConfigId}
@@ -224,6 +255,7 @@ export function ExperimentBuilder({
           saving={saving}
         />
         <ParamForm
+          promptType={promptType}
           params={params}
           onParamsChange={setParams}
           settings={settings}

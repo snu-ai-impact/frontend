@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, Textarea } from "@/components/ui/Card";
 import { REVIEW_STATUSES } from "@/lib/authoring-constants";
 import type { GenItemResult, GenerationRun } from "@/lib/authoring-types";
+import { SubjectiveResultView } from "./SubjectiveResultView";
 
 const SELF_CHECK_LABELS: Record<string, string> = {
   curriculumDependent: "교안 의존",
@@ -82,12 +83,26 @@ export function RunResultView({
   const [note, setNote] = useState(run.review_note ?? "");
   const [savingReview, setSavingReview] = useState(false);
 
-  const shuffled = run.result;
+  const isSubjective = run.prompt_type === "subjective";
+  const shuffled = (run.result as GenItemResult | null) ?? null;
   const view = useMemo<GenItemResult | null>(() => {
     if (!shuffled) return null;
     if (showOriginal && run.shuffle_map) return unshuffle(shuffled, run.shuffle_map);
     return shuffled;
   }, [shuffled, showOriginal, run.shuffle_map]);
+
+  // 주관식은 전용 렌더러로 위임 (선지·셔플 없음, 루브릭·앵커·결함패턴 렌더)
+  if (isSubjective) {
+    return (
+      <SubjectiveResultView
+        run={run}
+        onReview={onReview}
+        onRetry={onRetry}
+        retrying={retrying}
+        compact={compact}
+      />
+    );
+  }
 
   if (run.status !== "ok" || !view?.item) {
     return (

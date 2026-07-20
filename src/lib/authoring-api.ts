@@ -1,10 +1,14 @@
 import type {
+  AggregateResponse,
   AssemblyConfig,
   Block,
   BlockVersion,
   GenParams,
   GenerationRun,
   PreviewResult,
+  QcConfig,
+  ReviewRun,
+  ReviewedQcConfig,
   RunListItem,
 } from "./authoring-types";
 
@@ -32,7 +36,8 @@ async function jfetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 // ---- 블록 / 버전 ----
-export const listBlocks = () => jfetch<Block[]>("/blocks");
+export const listBlocks = (group?: string) =>
+  jfetch<Block[]>(`/blocks${group ? `?group=${encodeURIComponent(group)}` : ""}`);
 
 export const createBlockVersion = (
   blockKey: string,
@@ -50,10 +55,16 @@ export const createBlockVersion = (
   });
 
 // ---- 조합 ----
-export const listConfigs = () => jfetch<AssemblyConfig[]>("/configs");
+export const listConfigs = (promptType?: string) =>
+  jfetch<AssemblyConfig[]>(
+    `/configs${promptType ? `?prompt_type=${encodeURIComponent(promptType)}` : ""}`,
+  );
 
-export const createConfig = (body: { name: string; mapping: Record<string, string> }) =>
-  jfetch<AssemblyConfig>("/configs", { method: "POST", body: JSON.stringify(body) });
+export const createConfig = (body: {
+  name: string;
+  mapping: Record<string, string>;
+  prompt_type?: string;
+}) => jfetch<AssemblyConfig>("/configs", { method: "POST", body: JSON.stringify(body) });
 
 export const updateConfig = (
   id: string,
@@ -89,6 +100,7 @@ export const updateReview = (
 ) => jfetch<GenerationRun>(`/runs/${runId}/review`, { method: "PATCH", body: JSON.stringify(body) });
 
 export interface RunFilters {
+  prompt_type?: string;
   gen_config?: string;
   exam_level?: string;
   domain?: string;
@@ -96,6 +108,9 @@ export interface RunFilters {
   topic_id?: string;
   status?: string;
   review_status?: string;
+  final_verdict?: string;
+  gate_all_pass?: boolean;
+  blind_mismatch?: boolean;
   limit?: number;
 }
 
@@ -108,4 +123,34 @@ export const listRuns = (filters: RunFilters = {}) => {
   return jfetch<{ items: RunListItem[]; total: number }>(`/runs${s ? `?${s}` : ""}`);
 };
 
-export type { AssemblyConfig, Block, BlockVersion, GenerationRun, RunListItem };
+// ---- LLM 검수 (QC1v2) ----
+export const listQcConfigs = () => jfetch<QcConfig[]>("/qc-configs");
+
+export const runReview = (runId: string, qcConfigId?: string) =>
+  jfetch<ReviewRun>(`/runs/${runId}/review`, {
+    method: "POST",
+    body: JSON.stringify(qcConfigId ? { qc_config_id: qcConfigId } : {}),
+  });
+
+export const listReviews = (runId: string) =>
+  jfetch<ReviewRun[]>(`/runs/${runId}/reviews`);
+
+export const getReview = (reviewId: string) => jfetch<ReviewRun>(`/reviews/${reviewId}`);
+
+// ---- 조합 집계 ----
+export const listReviewedQcConfigs = () =>
+  jfetch<ReviewedQcConfig[]>("/reviews/qc-configs");
+
+export const aggregateReviews = (qcConfig: string) =>
+  jfetch<AggregateResponse>(`/reviews/aggregate?qc_config=${encodeURIComponent(qcConfig)}`);
+
+export type {
+  AggregateResponse,
+  AssemblyConfig,
+  Block,
+  BlockVersion,
+  GenerationRun,
+  QcConfig,
+  ReviewRun,
+  RunListItem,
+};

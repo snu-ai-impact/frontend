@@ -3,7 +3,7 @@
 import { Icon } from "@/components/icons/Icon";
 import { Button } from "@/components/ui/Button";
 import { Card, Input } from "@/components/ui/Card";
-import { BLOCK_ORDER, BLOCK_TYPE_LABEL } from "@/lib/authoring-constants";
+import { BLOCK_TYPE_LABEL, blockOrderFor } from "@/lib/authoring-constants";
 import type { AssemblyConfig, Block } from "@/lib/authoring-types";
 
 // gen_config 라이브 계산 (백엔드 derive_gen_config 와 동일 규칙)
@@ -13,10 +13,14 @@ export function blockToken(blockKey: string, band: string | null, label: string)
   return `${prefix}${sep}${label}`;
 }
 
-export function computeGenConfig(blocks: Block[], mapping: Record<string, string>): string {
+export function computeGenConfig(
+  blocks: Block[],
+  mapping: Record<string, string>,
+  order: string[],
+): string {
   const byKey = new Map(blocks.map((b) => [b.block_key, b]));
   const tokens: string[] = [];
-  for (const key of BLOCK_ORDER) {
+  for (const key of order) {
     const block = byKey.get(key);
     if (!block || block.block_type === "param") continue;
     const version = block.versions.find((v) => v.id === mapping[key]);
@@ -30,6 +34,7 @@ const selectCls =
   "h-8 w-full rounded-md bg-white px-2 text-[12px] text-ink-900 ring-1 ring-inset ring-surface-300 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:bg-surface-50 disabled:text-ink-400";
 
 export function AssemblyConfigEditor({
+  promptType = "mcq",
   blocks,
   configs,
   selectedConfigId,
@@ -44,6 +49,7 @@ export function AssemblyConfigEditor({
   onDuplicate,
   saving,
 }: {
+  promptType?: string;
   blocks: Block[];
   configs: AssemblyConfig[];
   selectedConfigId: string | null;
@@ -58,7 +64,8 @@ export function AssemblyConfigEditor({
   onDuplicate: () => void;
   saving: boolean;
 }) {
-  const genConfig = computeGenConfig(blocks, mapping);
+  const order = blockOrderFor(promptType);
+  const genConfig = computeGenConfig(blocks, mapping, order);
   const byKey = new Map(blocks.map((b) => [b.block_key, b]));
 
   return (
@@ -95,7 +102,7 @@ export function AssemblyConfigEditor({
       </div>
 
       <div className="mt-3 space-y-1.5">
-        {BLOCK_ORDER.map((key) => {
+        {order.map((key) => {
           const block = byKey.get(key);
           if (!block) return null;
           const isParam = block.block_type === "param";

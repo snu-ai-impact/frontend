@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card, Input } from "@/components/ui/Card";
 import { getRun, listRuns } from "@/lib/authoring-api";
+import { VERDICT_LABEL, VERDICT_TONE, type Verdict } from "@/lib/authoring-constants";
 import type { GenerationRun } from "@/lib/authoring-types";
 import { RunResultView } from "./RunResultView";
 
@@ -93,8 +94,14 @@ export function CompareView() {
             {runs.map((run) => (
               <div key={run.id} className="min-w-0">
                 <Card padding="p-3" className="mb-3">
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Badge tone="brand">{run.gen_config}</Badge>
+                    {run.latest_review_verdict && (
+                      <Badge tone={VERDICT_TONE[run.latest_review_verdict as Verdict]}>
+                        검수 {VERDICT_LABEL[run.latest_review_verdict as Verdict]}
+                        {typeof run.latest_axis_sum === "number" ? ` · 축합 ${run.latest_axis_sum}` : ""}
+                      </Badge>
+                    )}
                     <span className="ml-auto font-mono text-[10.5px] text-ink-400">
                       {new Date(run.created_at).toLocaleDateString("ko-KR")}
                     </span>
