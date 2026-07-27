@@ -126,10 +126,14 @@ export const listRuns = (filters: RunFilters = {}) => {
 // ---- LLM 검수 (QC1v2) ----
 export const listQcConfigs = () => jfetch<QcConfig[]>("/qc-configs");
 
-export const runReview = (runId: string, qcConfigId?: string) =>
+// model 을 지정하면 qc_config 의 기본 모델을 이번 검수에 한해 덮어쓴다(gemini/claude/gpt).
+export const runReview = (runId: string, qcConfigId?: string, model?: string) =>
   jfetch<ReviewRun>(`/runs/${runId}/review`, {
     method: "POST",
-    body: JSON.stringify(qcConfigId ? { qc_config_id: qcConfigId } : {}),
+    body: JSON.stringify({
+      ...(qcConfigId ? { qc_config_id: qcConfigId } : {}),
+      ...(model ? { model } : {}),
+    }),
   });
 
 export const listReviews = (runId: string) =>

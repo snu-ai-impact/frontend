@@ -18,6 +18,19 @@ import type { QcConfig, ReviewRun } from "@/lib/authoring-types";
 const sel =
   "h-8 rounded-md bg-white px-2 text-[12px] ring-1 ring-inset ring-surface-300 focus:outline-none focus:ring-2 focus:ring-brand-500/40";
 
+// 검수 모델 오버라이드 옵션. "" = qc_config 기본 모델 사용.
+// 모델 id 는 각 프로바이더 최신 문서 기준으로 바꾸면 된다 (/MODELS.md).
+const REVIEW_MODEL_OPTIONS = [
+  { key: "", label: "qc_config 기본 모델" },
+  { key: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+  { key: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
+  { key: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (preview)" },
+  { key: "claude-sonnet-5", label: "Claude Sonnet 5" },
+  { key: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { key: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+  { key: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+];
+
 function AxisBar({ label, hint, score, comment }: { label: string; hint: string; score?: number; comment?: string }) {
   const s = typeof score === "number" ? score : 0;
   const pct = Math.max(0, Math.min(100, (s / 5) * 100));
@@ -117,6 +130,7 @@ export function ReviewPanel({ runId }: { runId: string }) {
   const [qcConfigs, setQcConfigs] = useState<QcConfig[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [qcConfigId, setQcConfigId] = useState<string>("");
+  const [modelOverride, setModelOverride] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -145,7 +159,7 @@ export function ReviewPanel({ runId }: { runId: string }) {
     setRunning(true);
     setError(null);
     try {
-      const rv = await runReview(runId, qcConfigId || undefined);
+      const rv = await runReview(runId, qcConfigId || undefined, modelOverride || undefined);
       const list = await listReviews(runId);
       setReviews(list);
       setSelectedId(rv.id);
@@ -167,6 +181,18 @@ export function ReviewPanel({ runId }: { runId: string }) {
           {qcConfigs.map((q) => (
             <option key={q.id} value={q.id}>
               {q.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className={sel}
+          value={modelOverride}
+          onChange={(e) => setModelOverride(e.target.value)}
+          title="검수 모델 (qc_config 기본값을 덮어씀)"
+        >
+          {REVIEW_MODEL_OPTIONS.map((m) => (
+            <option key={m.key} value={m.key}>
+              {m.label}
             </option>
           ))}
         </select>

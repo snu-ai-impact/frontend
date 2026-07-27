@@ -45,8 +45,16 @@ export function QualityBadge({ value }: { value: QualityStatus }) {
   );
 }
 
+function modelLabel(model: string): string {
+  const m = model.toLowerCase();
+  if (m.includes("gemini")) return "Gemini";
+  if (m.includes("claude")) return "Claude";
+  if (m.startsWith("gpt") || m.startsWith("o1") || m.startsWith("o3") || m.startsWith("o4")) return "GPT";
+  return model.slice(0, 12);
+}
+
 export function ModelBadge({ model }: { model: string }) {
-  const label = model.includes("gemini") ? "Gemini" : model.slice(0, 12);
+  const label = modelLabel(model);
   return (
     <span className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11.5px] font-medium ring-1 ring-inset text-violet-700 bg-violet-50 ring-violet-200">
       <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" />

@@ -244,8 +244,36 @@ export interface FileSourcePreviewApi {
   generatable: boolean;
 }
 
+export interface CollectedFileApi {
+  name: string;
+  path: string;
+  size: number | null;
+  truncated: boolean;
+  chars: number;
+}
+
+export interface CollectResponseApi {
+  provider: string;
+  files: CollectedFileApi[];
+  combined: string;
+  total_chars: number;
+  truncated: boolean;
+  skipped: string[];
+}
+
 export async function listFileSourceProviders(): Promise<FileSourceProviderApi[]> {
   return apiFetch(`/api/v1/file-sources/providers`);
+}
+
+// 여러 파일/폴더 경로를 하나의 교안 텍스트로 합쳐 받는다 (폴더는 텍스트 파일 재귀 수집).
+export async function collectFileSources(
+  provider: string,
+  paths: string[],
+): Promise<CollectResponseApi> {
+  return apiFetch(`/api/v1/file-sources/collect`, {
+    method: "POST",
+    body: JSON.stringify({ provider, paths }),
+  });
 }
 
 export async function listFileSourceEntries(

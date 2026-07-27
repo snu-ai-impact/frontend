@@ -2,6 +2,35 @@
 
 Next.js 기반 프론트엔드입니다. 프롬프트랩에서 AI 문항을 생성하고, 문제은행에서 주관식/객관식 문항을 검색·검토할 수 있습니다.
 
+---
+
+## 🚀 다른 맥북에서 개발 환경 세팅 (Docker Compose · 권장)
+
+이 프로젝트는 **backend + frontend + PostgreSQL** 을 `docker-compose.yml` 로 한 번에 띄우는 구성입니다.
+`frontend` 와 `backend` 는 별도 저장소이고, `docker-compose.yml` 은 둘의 **상위(부모) 폴더**에 둡니다.
+
+```bash
+mkdir ai_assessment && cd ai_assessment
+git clone -b dev_jjs https://github.com/snu-ai-impact/frontend.git
+git clone -b dev_jjs https://github.com/snu-ai-impact/backend.git
+mkdir -p lecture
+# docker-compose.yml 은 어느 repo 에도 없습니다. backend repo 의 README(“다른 맥북에서 개발 환경 세팅”)에
+# docker-compose.yml 전문과 전체 절차가 있으니 그대로 부모 폴더에 저장 후:
+docker compose up --build
+```
+
+접속: 프론트 <http://localhost:3000> (로그인 **admin / admin**) · 백엔드 <http://localhost:8000/docs>
+
+**프론트엔드 관련 참고**
+- 브라우저→백엔드 호출 주소 `NEXT_PUBLIC_API_URL` 은 compose 가 `http://localhost:8000` 으로 주입합니다(별도 `.env.local` 불필요).
+- 로그인 계정(`APP_LOGIN_ID`/`APP_LOGIN_PASSWORD`)과 인증 시크릿(`APP_AUTH_SECRET`)도 compose 에서 주입됩니다.
+- 소스는 bind-mount 되어 코드 수정 시 핫리로드로 즉시 반영됩니다. `node_modules`/`.next` 는 컨테이너 볼륨으로 보존됩니다.
+- 컨테이너 없이 프론트만 단독 실행하려면 아래 "설치 / 개발 서버 실행" 절차를 따르되, 백엔드 API 가 `NEXT_PUBLIC_API_URL` 주소에서 떠 있어야 합니다.
+
+전체 스택 세팅(부모 폴더 구조, `docker-compose.yml` 전문, `backend/.env` API 키 설정, 자주 쓰는 명령어)은 **backend 저장소 README** 를 참고하세요.
+
+---
+
 ## 주요 기능
 
 - 프롬프트랩

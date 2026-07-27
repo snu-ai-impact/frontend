@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Icon } from "@/components/icons/Icon";
 import { Button } from "@/components/ui/Button";
 import { Card, Input, Textarea } from "@/components/ui/Card";
-import { FileSourcePicker, type PickedFile } from "./FileSourcePicker";
+import { FileSourcePicker, type PickedSelection } from "./FileSourcePicker";
 import {
   COGNITIVE_BY_BOUNDARY_INDEX,
   COGNITIVE_DEMANDS,
@@ -29,7 +29,17 @@ export interface ModelSettings {
   maxTokens: number | null;
 }
 
-const MODEL_OPTIONS = [{ key: "gemini-3.5-flash", label: "Gemini 3.5 Flash" }];
+// 모델 문자열의 접두사로 백엔드가 프로바이더를 자동 판별한다(gemini/claude/gpt).
+// 모델 id 는 각 프로바이더 최신 문서 기준으로 자유롭게 바꾸면 된다. 자세한 내용은 /MODELS.md.
+const MODEL_OPTIONS = [
+  { key: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+  { key: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
+  { key: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (preview)" },
+  { key: "claude-sonnet-5", label: "Claude Sonnet 5" },
+  { key: "claude-opus-4-8", label: "Claude Opus 4.8" },
+  { key: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+  { key: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
+];
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -62,15 +72,24 @@ export function ParamForm({
   const isSubjective = promptType === "subjective";
   const boundaries = TARGET_BOUNDARIES[(params.exam_level as ExamLevel) ?? "초급"] ?? [];
 
-  const handlePick = (file: PickedFile) => {
-    const stem = file.name.replace(/\.[^./]+$/, "");
+  const handlePick = (selection: PickedSelection) => {
+    const first = selection.files[0];
+    const stem = first ? first.name.replace(/\.[^./]+$/, "") : "";
+    const count = selection.files.length;
+    const label =
+      count === 1
+        ? first.name
+        : `${count}개 파일 (${selection.files
+            .slice(0, 3)
+            .map((f) => f.name)
+            .join(", ")}${count > 3 ? " 외" : ""})`;
     onParamsChange({
       ...params,
-      curriculum_material: file.content,
-      // 교안 ID 가 비어 있으면 파일명으로 자동 채움 (출처 추적)
+      curriculum_material: selection.content,
+      // 교안 ID 가 비어 있으면 첫 파일명으로 자동 채움 (출처 추적)
       curriculum_id: params.curriculum_id.trim() ? params.curriculum_id : stem,
     });
-    setSourceLabel(file.name);
+    setSourceLabel(label);
     setPickerOpen(false);
   };
 
