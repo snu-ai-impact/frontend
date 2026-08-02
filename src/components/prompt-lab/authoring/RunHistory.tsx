@@ -269,7 +269,7 @@ export function RunHistory({
           )}
 
           {detailTab === "review" && detail.prompt_type === "mcq" && detail.status === "ok" ? (
-            <ReviewPanel runId={detail.id} />
+            <ReviewPanel runId={detail.id} promptType={detail.prompt_type} />
           ) : (
             <RunResultView
               run={detail}

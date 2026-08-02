@@ -14,6 +14,7 @@ import {
   type Verdict,
 } from "@/lib/authoring-constants";
 import type { QcConfig, ReviewRun } from "@/lib/authoring-types";
+import { CriterionReviewPanel } from "./CriterionReviewPanel";
 
 const sel =
   "h-8 rounded-md bg-white px-2 text-[12px] ring-1 ring-inset ring-surface-300 focus:outline-none focus:ring-2 focus:ring-brand-500/40";
@@ -25,8 +26,9 @@ const REVIEW_MODEL_OPTIONS = [
   { key: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
   { key: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
   { key: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (preview)" },
+  { key: "claude-fable-5", label: "Claude Fable 5" },
+  { key: "claude-opus-5", label: "Claude Opus 5" },
   { key: "claude-sonnet-5", label: "Claude Sonnet 5" },
-  { key: "claude-opus-4-8", label: "Claude Opus 4.8" },
   { key: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
   { key: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
 ];
@@ -125,7 +127,8 @@ function BlindSolve({ review }: { review: ReviewRun }) {
   );
 }
 
-export function ReviewPanel({ runId }: { runId: string }) {
+export function ReviewPanel({ runId, promptType = "mcq" }: { runId: string; promptType?: string }) {
+  const [mode, setMode] = useState<"holistic" | "criterion">("holistic");
   const [reviews, setReviews] = useState<ReviewRun[]>([]);
   const [qcConfigs, setQcConfigs] = useState<QcConfig[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -174,7 +177,30 @@ export function ReviewPanel({ runId }: { runId: string }) {
 
   return (
     <div className="space-y-4">
-      {/* 검수 실행 컨트롤 */}
+      {/* 검수 모드 토글: 종합 vs 요소별 */}
+      <div className="inline-flex rounded-lg bg-surface-100 p-0.5 ring-1 ring-inset ring-surface-200">
+        {([
+          ["holistic", "종합 검수"],
+          ["criterion", "요소별 검수 (C1~C9)"],
+        ] as const).map(([m, label]) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`rounded-md px-3 py-1 text-[12px] font-medium transition ${
+              mode === m ? "bg-white text-ink-900 shadow-sm ring-1 ring-surface-200" : "text-ink-500 hover:text-ink-700"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === "criterion" ? (
+        <CriterionReviewPanel runId={runId} promptType={promptType} />
+      ) : (
+        <div className="space-y-4">
+          {/* 검수 실행 컨트롤 */}
       <div className="flex flex-wrap items-center gap-2 rounded-xl bg-white p-3 shadow-card ring-1 ring-surface-200">
         <select className={sel} value={qcConfigId} onChange={(e) => setQcConfigId(e.target.value)}>
           {qcConfigs.length === 0 && <option value="">qc_config 없음</option>}
@@ -339,6 +365,8 @@ export function ReviewPanel({ runId }: { runId: string }) {
             <span>tokens: {review.token_count ?? "-"}</span>
           </div>
         </>
+      )}
+        </div>
       )}
     </div>
   );

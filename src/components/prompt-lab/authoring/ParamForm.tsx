@@ -35,8 +35,9 @@ const MODEL_OPTIONS = [
   { key: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
   { key: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
   { key: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (preview)" },
+  { key: "claude-fable-5", label: "Claude Fable 5" },
+  { key: "claude-opus-5", label: "Claude Opus 5" },
   { key: "claude-sonnet-5", label: "Claude Sonnet 5" },
-  { key: "claude-opus-4-8", label: "Claude Opus 4.8" },
   { key: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
   { key: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
 ];

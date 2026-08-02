@@ -127,6 +127,38 @@ export const listRuns = (filters: RunFilters = {}) => {
 export const listQcConfigs = () => jfetch<QcConfig[]>("/qc-configs");
 
 // model 을 지정하면 qc_config 의 기본 모델을 이번 검수에 한해 덮어쓴다(gemini/claude/gpt).
+// ── 요소별 검수 (C1~C9) ──────────────────────────────────────────────
+export interface CriterionMeta {
+  id: string;
+  name: string;
+  short: string;
+  unit: string;
+  needs_source: boolean;
+}
+
+export interface CriterionResult {
+  criterion: string;
+  name: string;
+  short: string;
+  unit: string;
+  score: number; // 0~100 (코드 계산)
+  verdict: string | null;
+  comment: string | null;
+  evidence: string[];
+  indicators: Record<string, unknown>;
+  model: string;
+  token_count: number | null;
+}
+
+export const listReviewCriteria = (promptType = "mcq") =>
+  jfetch<CriterionMeta[]>(`/review-criteria?prompt_type=${encodeURIComponent(promptType)}`);
+
+export const runCriterionReview = (runId: string, criterionId: string, model?: string) =>
+  jfetch<CriterionResult>(`/runs/${runId}/review/criterion`, {
+    method: "POST",
+    body: JSON.stringify({ criterion_id: criterionId, ...(model ? { model } : {}) }),
+  });
+
 export const runReview = (runId: string, qcConfigId?: string, model?: string) =>
   jfetch<ReviewRun>(`/runs/${runId}/review`, {
     method: "POST",
