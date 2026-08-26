@@ -45,7 +45,6 @@ const DEFAULT_PARAMS_MCQ: GenParams = {
   cognitive_demand: "적용",
   domain: "E",
   task_type: "",
-  industry: "",
 };
 
 const DEFAULT_PARAMS_SUBJ: GenParams = {
@@ -54,7 +53,6 @@ const DEFAULT_PARAMS_SUBJ: GenParams = {
   cognitive_demand: "",
   domain: "",
   task_type: "개선",
-  industry: "보험",
 };
 
 const defaultParamsFor = (t: PromptType): GenParams =>

@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons/Icon";
 const NAV = [
   { href: "/", label: "대시보드", icon: "dashboard" as const },
   { href: "/prompt-lab", label: "프롬프트랩", icon: "sparkles" as const, badge: "AI" },
+  { href: "/exam-generator", label: "시험 문항 생성", icon: "addList" as const, badge: "AI" },
   { href: "/file-sources", label: "자료실", icon: "file" as const },
   { href: "/question-bank", label: "문제은행", icon: "bank" as const },
   { href: "#", label: "시험관리", icon: "clipboard" as const, disabled: true },

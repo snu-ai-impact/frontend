@@ -103,9 +103,7 @@ export function SubjectiveResultView({
         <div className="flex flex-wrap items-center gap-2 border-b border-surface-200 px-5 py-3">
           <Badge tone="brand">{meta.examLevel || run.exam_level}</Badge>
           <Badge tone="violet">{meta.taskType || level?.taskType || "주관식"}</Badge>
-          {(meta.industry || run.industry) && (
-            <Badge tone="neutral">{meta.industry || run.industry}</Badge>
-          )}
+          {meta.industry && <Badge tone="neutral">{meta.industry}</Badge>}
           {rubric?.totalPoints != null && <Badge tone="lightblue">{rubric.totalPoints}점</Badge>}
         </div>
         <div className="space-y-3 px-5 py-4">

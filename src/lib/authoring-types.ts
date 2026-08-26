@@ -41,7 +41,6 @@ export interface GenParams {
   target_p: number;
   // 주관식(subjective) 전용
   task_type: string;
-  industry: string;
   item_points: number;
   criterion_weights: string;
   // 공용
@@ -145,7 +144,6 @@ export interface GenerationRun extends ReviewSummary {
   domain: string | null;
   target_boundary: string | null;
   cognitive_demand: string | null;
-  industry: string | null;
   topic_id: string | null;
   model: string;
   temperature: number;
@@ -171,7 +169,6 @@ export interface RunListItem extends ReviewSummary {
   target_boundary: string | null;
   topic_id: string | null;
   cognitive_demand: string | null;
-  industry: string | null;
   status: string;
   review_status: string;
   token_count: number | null;

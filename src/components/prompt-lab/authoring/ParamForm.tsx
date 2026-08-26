@@ -12,7 +12,6 @@ import {
   DOMAIN_LABELS,
   DOMAINS,
   EXAM_LEVELS,
-  INDUSTRIES,
   TARGET_BOUNDARIES,
   TARGET_P_BAND,
   TASK_TYPES,
@@ -189,20 +188,6 @@ export function ParamForm({
       {/* 유형별 변별 파라미터 */}
       {isSubjective ? (
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <Field label="무대 산업 (industry)">
-            <select
-              className={selectCls}
-              value={params.industry}
-              onChange={(e) => set({ industry: e.target.value })}
-            >
-              {INDUSTRIES.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </Field>
-
           <Field label="문항 배점 (item_points)">
             <Input
               type="number"
